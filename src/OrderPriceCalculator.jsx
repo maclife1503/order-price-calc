@@ -130,10 +130,10 @@ export default function OrderPriceCalculator() {
   const [totalYenInput, setTotalYenInput] = useState("");
 
   // 2) Kích thước, phí ship
-  const [weightKg, setWeightKg] = useState();
-  const [lenCm, setLenCm] = useState();
-  const [widCm, setWidCm] = useState();
-  const [heiCm, setHeiCm] = useState();
+  const [weightKg, setWeightKg] = useState("");
+  const [lenCm, setLenCm] = useState("");
+  const [widCm, setWidCm] = useState("");
+  const [heiCm, setHeiCm] = useState("");
   const [sellerShipYen, setSellerShipYen] = useState(); // Phí ship từ người bán (¥)
   const [shipJPVN, setShipJPVN] = useState(); // VND
   const [shipVN, setShipVN] = useState(); // VND
@@ -195,7 +195,7 @@ export default function OrderPriceCalculator() {
       <div className="max-w-5xl mx-auto p-6 md:p-10">
         {/* 1) Thông tin sản phẩm */}
         <section className="relative bg-white rounded-2xl shadow-sm border p-5 md:p-6 mb-6 pb-4">
-          <h2 className="text-base font-semibold mb-4 text-center">1) Thông tin sản phẩm</h2>
+          <h2 className="text-base font-semibold mb-4 ">1) Thông tin sản phẩm</h2>
 
           <div className="absolute top-3 right-4 text-sm text-gray-600">
             <div className="text-center text-gray-600">
@@ -207,9 +207,9 @@ export default function OrderPriceCalculator() {
           {/* Hàng trên: Tổng (trái) + SL (phải). Hàng giữa (phải): Công mua. Hàng dưới: Giá VND full */}
           <div className="grid grid-cols-10 md:grid-cols-2 gap-4">
             {/* Tổng giá trị đơn hàng (¥) – trái */}
-            <div className=" col-span-6 md:col-span-1">
+            <div className=" col-span-10 md:col-span-1">
               <Field
-                label="Tổng giá trị đơn hàng (¥)"
+                label="Tổng đơn (¥)"
                 required
                 hint={"Bạn có thể làm phép cộng các đơn hàng ở ô này"}
               >
@@ -219,7 +219,8 @@ export default function OrderPriceCalculator() {
 
                 <textarea
                   rows={1}
-                  inputMode="numeric"
+                  type="text"
+                  inputMode="text" 
                   pattern="[0-9+\\-*/().]*"
                   className={INPUT_BASE + " resize-none overflow-hidden text-base font-medium"}
                   placeholder="vd: 1000+500*2"
@@ -235,11 +236,11 @@ export default function OrderPriceCalculator() {
                 />
               </Field>
             </div>
-
+            
             {/* SL – phải (cùng hàng với Tổng) */}
-            <div className="col-span-4 md:col-span-1">
+            <div className="col-span-10 md:col-span-1">
               <Field
-                label="Số lượng hàng đặt"
+                label="SL"
                 required
                 hint="Trên 10 vui lòng liên hệ shop để đặt số lượng lớn."
               >
@@ -247,7 +248,8 @@ export default function OrderPriceCalculator() {
                   type="number"
                   min={1}
                   inputMode="numeric"
-                  className={INPUT_BASE + " h-9 w-20 text-center rounded-lg"}
+                  className={INPUT_BASE + "resize-none overflow-hidden text-base font-medium"}
+                  
                   value={qty}
                   onChange={(e) => setQty(Math.max(0, parseNum(e.target.value)))}
                 />
@@ -260,10 +262,10 @@ export default function OrderPriceCalculator() {
             </div>
 
             {/* Công mua – ngay dưới SL, vẫn ở cột phải */}
-            <div className="col-span-4 md:col-span-1">
+            <div className="col-span-10 md:col-span-1">
               <Field
-                label="Công mua (càng mua nhiều càng rẻ)"
-                hint={"≤ 25,000¥: 1 đơn 500¥; 2–5 đơn 400¥/đơn; 6–10 đơn 300¥/đơn.\n> 25,000¥: 2%."}
+                label="Công mua"
+                hint={"càng mua nhiều càng rẻ\n≤ 25,000¥: 1 đơn 500¥; 2–5 đơn 400¥/đơn; 6–10 đơn 300¥/đơn.\n> 25,000¥: 2%."}
               >
                 <div className="flex items-baseline gap-2">
                   <div className="text-lg font-semibold">{VND.format(calc.serviceFeeVND)}</div>
@@ -273,7 +275,7 @@ export default function OrderPriceCalculator() {
             </div>
 
             {/* Giá VND (ước tính) – luôn dưới cùng, full width */}
-            <div className="col-span-10 md:col-span-2">
+            <div className="col-span-10 md:col-span-1">
               <Field
                 label="Giá VND (ước tính)"
                 hint="(Tổng ¥ + Công mua ¥) × Tỷ giá. Chưa gồm ship/phụ thu."
@@ -293,53 +295,119 @@ export default function OrderPriceCalculator() {
           {/* Hàng 1: Cân nặng (full width) */}
           <div className="mb-4">
             <Field label="Cân nặng dự kiến (kg)" hint="Khối lượng thực tế ước tính của kiện hàng.">
-              <input
-                type="number"
-                className={INPUT_BASE}
-                value={weightKg}
-                onChange={(e)=>setWeightKg(parseNum(e.target.value))}
-              />
+              <div className="relative">
+                <input
+                  type="text"           // dùng text để không bị trình duyệt ép
+                  inputMode="decimal"   // vẫn mở keypad số trên mobile
+                  className={INPUT_BASE + " w-full pr-10"}  // chừa chỗ cho 'kg'
+                  placeholder="Nhập số"
+                  value={weightKg ?? ""}                     // cho phép hiển thị rỗng
+                  onChange={(e) => {
+                    // chỉ giữ số và dấu chấm, cho phép rỗng ""
+                    const v = e.target.value.replace(/[^\d.]/g, "");
+                    setWeightKg(v);
+                  }}
+                  onBlur={() => {
+                    // khi rời ô: nếu có giá trị thì chuẩn hoá về số
+                    if (weightKg !== "" && weightKg != null) {
+                      setWeightKg(String(parseNum(weightKg)));
+                    }
+                  }}
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                  kg
+                </span>
+              </div>
             </Field>
           </div>
+                   
+
 
           {/* Hàng 2: Dài – Rộng – Cao (luôn cùng 1 hàng, tự co giãn) */}
           <div className="mb-4">
             <div className="grid grid-cols-3 gap-4">
               <div className="min-w-0">
-                <Field label="Dài (cm)" hint="Chiều dài thùng sau khi đóng gói.">
-                  <input
-                    type="number"
-                    className={INPUT_BASE + " w-full"}
-                    value={lenCm}
-                    onChange={(e)=>setLenCm(parseNum(e.target.value))}
-                  />
+                {/* Dài (cm) – cho phép trống, có đơn vị trong ô */}
+                <Field label="Dài" hint="Chiều dài thùng sau khi đóng gói.">
+                  <div className="relative">
+                    <input
+                      type="text"              // dùng text để không bị ép hiển thị 0
+                      inputMode="decimal"      // mobile vẫn bật keypad số
+                      className={INPUT_BASE + " w-full pr-10"}
+                      placeholder="Nhập số"
+                      value={lenCm ?? ""}      // cho phép rỗng
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/[^\d.]/g, ""); // chỉ giữ số & dấu chấm
+                        setLenCm(v);             // KHÔNG parse ngay → tránh hiện 0 khi xoá hết
+                      }}
+                      onBlur={() => {
+                        if (lenCm === "" || lenCm == null) return;
+                        // chuẩn hoá khi rời ô (tùy chọn): "0012.0" -> "12"
+                        setLenCm(String(parseNum(lenCm)));
+                      }}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                      cm
+                    </span>
+                  </div>
+                </Field>
+
+              </div>
+              
+              <div className="min-w-0">
+                <Field label="Rộng" hint="Chiều rộng thùng sau khi đóng gói.">
+                  <div className="relative">
+                    <input
+                      type="text"              // dùng text để không bị ép hiển thị 0
+                      inputMode="decimal"      // mobile vẫn bật keypad số
+                      className={INPUT_BASE + " w-full pr-10"}
+                      placeholder="Nhập số"
+                      value={widCm ?? ""}      // cho phép rỗng
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/[^\d.]/g, ""); // chỉ giữ số & dấu chấm
+                        setWidCm(v);             // KHÔNG parse ngay → tránh hiện 0 khi xoá hết
+                      }}
+                      onBlur={() => {
+                        if (widCm === "" || widCm == null) return;
+                        // chuẩn hoá khi rời ô (tùy chọn): "0012.0" -> "12"
+                        setWidCm(String(parseNum(widCm)));
+                      }}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                      cm
+                    </span>
+                  </div>
                 </Field>
               </div>
 
               <div className="min-w-0">
-                <Field label="Rộng (cm)" hint="Chiều rộng thùng sau khi đóng gói.">
-                  <input
-                    type="number"
-                    className={INPUT_BASE + " w-full"}
-                    value={widCm}
-                    onChange={(e)=>setWidCm(parseNum(e.target.value))}
-                  />
-                </Field>
-              </div>
-
-              <div className="min-w-0">
-                <Field label="Cao (cm)" hint="Chiều cao thùng sau khi đóng gói.">
-                  <input
-                    type="number"
-                    className={INPUT_BASE + " w-full"}
-                    value={heiCm}
-                    onChange={(e)=>setHeiCm(parseNum(e.target.value))}
-                  />
+                <Field label="Cao" hint="Chiều cao thùng sau khi đóng gói.">
+                  <div className="relative">
+                    <input
+                      type="text"              // dùng text để không bị ép hiển thị 0
+                      inputMode="decimal"      // mobile vẫn bật keypad số
+                      className={INPUT_BASE + " w-full pr-10"}
+                      placeholder="Nhập số"
+                      value={heiCm ?? ""}      // cho phép rỗng
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/[^\d.]/g, ""); // chỉ giữ số & dấu chấm
+                        setHeiCm(v);             // KHÔNG parse ngay → tránh hiện 0 khi xoá hết
+                      }}
+                      onBlur={() => {
+                        if (heiCm === "" || heiCm == null) return;
+                        // chuẩn hoá khi rời ô (tùy chọn): "0012.0" -> "12"
+                        setHeiCm(String(parseNum(heiCm)));
+                      }}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                      cm
+                    </span>
+                  </div>
                 </Field>
               </div>
             </div>
           </div>
-
+                          
 
           {/* Các phí khác */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
