@@ -1,14 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 
-// Version: layout simplified per request
-// 1) Thông tin sản phẩm (tỷ giá, tổng JPY, số lượng, giá VND)
-// 2) Kích thước, phí ship (kg, L/W/H, ship từ người bán ¥, ship Nhật–Việt, ship nội địa VN, phụ thu)
-// 3) Kết quả (giá gốc, công mua, phụ thu, ship từ người bán (¥→VND), ship JPN–VN, ship nội địa VN)
-// 4) Tổng thanh toán
-// Công mua:
-//  - Nếu tổng ≤ 25,000¥: 1 đơn 500¥; 2–5 đơn 400¥/đơn; 6–10 đơn 300¥/đơn ( >10 vẫn 300¥/đơn )
-//  - Nếu tổng > 25,000¥: 2%
-
+// == Currency / number formatters
 const VND = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
 const GEN = new Intl.NumberFormat("vi-VN");
 
@@ -17,87 +9,6 @@ function parseNum(v) {
   const n = typeof v === "number" ? v : Number(("" + v).replace(/,/g, "."));
   return Number.isFinite(n) ? n : 0;
 }
-
-// Stepper (không bắt buộc dùng ở bản này, giữ để tái sử dụng)
-function QtyStepper({ value, onChange, min = 0, max = 999 }) {
-  const clamp = (v) => Math.min(max, Math.max(min, v | 0));
-  const inc = () => onChange(clamp((value ?? 0) + 1));
-  const dec = () => onChange(clamp((value ?? 0) - 1));
-
-  return (
-    <div className="inline-flex items-center gap-2">
-      <span className="text-sm text-gray-600">SL:</span>
-
-      <div className="inline-flex items-stretch w-fit rounded-2xl border border-gray-700 overflow-hidden">
-        <div className="px-3 py-1.5 min-w-[3ch] text-center font-medium select-none">
-          {value ?? 0}
-        </div>
-
-        <div className="flex flex-col divide-y divide-gray-300 border-l border-gray-700">
-          <button
-            type="button"
-            aria-label="Tăng"
-            onClick={inc}
-            className="w-8 h-5 leading-none hover:bg-gray-100 active:scale-95"
-          >
-            ▲
-          </button>
-          <button
-            type="button"
-            aria-label="Giảm"
-            onClick={dec}
-            className="w-8 h-5 leading-none hover:bg-gray-100 active:scale-95"
-          >
-            ▼
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Label có * (required) + icon ? có tooltip (tooltip hiển thị Ở TRÊN)
-function InfoLabel({ label, hint, required }) {
-  return (
-    <div className="flex items-center gap-2 mb-1.5">
-      <label className="text-sm font-medium text-gray-800">
-        {required && <span className="text-red-500 mr-1">*</span>}
-        {label}
-      </label>
-
-      {hint && (
-        <span className="relative group inline-flex items-center justify-center 
-                         w-5 h-5 rounded-full border border-gray-300 text-gray-500 text-xs cursor-default select-none">
-          ?
-          {/* tooltip: ở TRÊN icon */}
-          <span className="absolute z-10 hidden group-hover:block left-1/2 -translate-x-1/2 
-                           bottom-[calc(100%+8px)] whitespace-pre-line px-3 py-2 rounded-md text-xs text-gray-800 bg-white
-                           border shadow-md w-max max-w-[260px]">
-            {hint}
-            {/* mũi tên nhỏ */}
-            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white rotate-45 border-l border-b"></span>
-          </span>
-        </span>
-      )}
-    </div>
-  );
-}
-
-// Khung field chuẩn như ảnh (bo tròn, border nhạt)
-function Field({ label, hint, required, children }) {
-  return (
-    <div>
-      <InfoLabel label={label} hint={hint} required={required} />
-      <div className="rounded-xl border border-gray-200 px-3 py-2 bg-white">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// class input chung
-const INPUT_BASE =
-  "w-full bg-transparent border-0 outline-none focus:ring-0 placeholder-gray-400 text-gray-900";
 
 // === NEW: Hàm tính công mua theo bậc thang theo SỐ LƯỢNG ===
 function getServiceFeeJPY(yenTotal, qty) {
@@ -114,18 +25,133 @@ function getServiceFeeJPY(yenTotal, qty) {
   return y * 0.02;
 }
 
+// Tooltip label
+function InfoLabel({ label, hint, required }) {
+  return (
+    <div className="flex items-center gap-2 mb-1.5">
+      <label className="text-sm font-medium text-gray-800">
+        {required && <span className="text-red-500 mr-1">*</span>}
+        {label}
+      </label>
+
+      {hint && (
+        <span className="relative group inline-flex items-center justify-center 
+                         w-5 h-5 rounded-full border border-gray-300 text-gray-500 text-xs cursor-default select-none">
+          ?
+          <span className="absolute z-10 hidden group-hover:block left-1/2 -translate-x-1/2 
+                           bottom-[calc(100%+8px)] whitespace-pre-line px-3 py-2 rounded-md text-xs text-gray-800 bg-white
+                           border shadow-md w-max max-w-[260px]">
+            {hint}
+            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white rotate-45 border-l border-b"></span>
+          </span>
+        </span>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, hint, required, children }) {
+  return (
+    <div>
+      <InfoLabel label={label} hint={hint} required={required} />
+      <div className="rounded-xl border border-gray-200 px-3 py-2 bg-white">{children}</div>
+    </div>
+  );
+}
+
+const INPUT_BASE =
+  "w-full bg-transparent border-0 outline-none focus:ring-0 placeholder-gray-400 text-gray-900";
+
+// === NEW: Modal hiển thị nội dung file bảng tính (CSV/TSV/TXT)
+function SheetModal({ open, onClose, name, rows }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="absolute inset-x-4 md:inset-x-10 lg:inset-x-20 top-10 bottom-10 bg-white rounded-2xl shadow-xl border p-4 md:p-6 overflow-hidden">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <h3 className="text-base md:text-lg font-semibold">Bảng tính phí ship & phụ thu {!name ? "" : `– ${name}`}</h3>
+          <button onClick={onClose} className="px-3 py-1.5 rounded-lg border hover:bg-gray-50">Đóng</button>
+        </div>
+        <div className="h-full overflow-auto border rounded-xl">
+          <table className="min-w-full text-sm">
+            <tbody>
+              {rows && rows.length > 0 ? (
+                rows.map((r, i) => (
+                  <tr key={i} className={i % 2 ? "bg-gray-50" : "bg-white"}>
+                    {r.map((c, j) => (
+                      <td key={j} className="px-3 py-2 border-b whitespace-pre">{String(c)}</td>
+                    ))}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="p-6 text-center text-gray-500">Không có dữ liệu hiển thị.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// === NEW: Parser CSV/TSV đơn giản (không phụ thuộc thư viện)
+function parseDelimited(text) {
+  if (!text) return [];
+  // Ưu tiên tách theo tab nếu thấy nhiều tab, nếu không thì theo dấu phẩy
+  const useTab = (text.match(/\t/g) || []).length > (text.match(/,/g) || []).length;
+  const sep = useTab ? "\t" : ",";
+  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  return lines.map((line) => {
+    // Parser nhẹ: tôn trọng cặp dấu nháy đôi, cho phép dấu phân cách bên trong nháy
+    const cells = [];
+    let cur = "";
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          cur += '"';
+          i++; // skip escaped quote
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (ch === sep && !inQuotes) {
+        cells.push(cur);
+        cur = "";
+      } else {
+        cur += ch;
+      }
+    }
+    cells.push(cur);
+    return cells;
+  });
+}
+
+// === Đường dẫn & hàm tải PDF phụ thu có sẵn trong project
+const PDF_SURCHARGE_PATH = "/data/phu_thu.pdf";
+
+async function handleOpenSurchargePDF() {
+  // Mở tab mới, dùng viewer PDF mặc định của trình duyệt
+  window.open(PDF_SURCHARGE_PATH, "_blank", "noopener,noreferrer");
+}
+
 export default function OrderPriceCalculator() {
   // 1) Thông tin sản phẩm
-  const [rate, setRate] = useState(180); // Tỷ giá JPY → VND
-  const [totalYen, setTotalYen] = useState(); // Tổng giá trị đơn hàng (¥)
-  const [qty, setQty] = useState(); // Số lượng hàng đặt
+  const [rate, setRate] = useState(180);
+  const [totalYen, setTotalYen] = useState();
+  const [qty, setQty] = useState();
   const evalExpr = (s) => {
     const safe = (s || "").replace(/[^0-9+\-*/().]/g, "");
     if (!safe) return "";
     try {
       const v = Function('"use strict";return(' + safe + ')')();
       return Number.isFinite(v) ? v : "";
-    } catch { return ""; }
+    } catch {
+      return "";
+    }
   };
   const [totalYenInput, setTotalYenInput] = useState("");
 
@@ -134,43 +160,60 @@ export default function OrderPriceCalculator() {
   const [lenCm, setLenCm] = useState("");
   const [widCm, setWidCm] = useState("");
   const [heiCm, setHeiCm] = useState("");
-  const [sellerShipYen, setSellerShipYen] = useState(); // Phí ship từ người bán (¥)
-  const [shipJPVN, setShipJPVN] = useState(); // VND
-  const [shipVN, setShipVN] = useState(); // VND
-  const [surchargeVND, setSurchargeVND] = useState(); // Phụ thu (VND)
+  const [sellerShipYen, setSellerShipYen] = useState();
+  const [shipJPVN, setShipJPVN] = useState();
+  const [shipVN, setShipVN] = useState();
+  const [surchargeVND, setSurchargeVND] = useState();
+
+  // === NEW: State cho "Bảng tính phí ship & phụ thu"
+  const fileRef = useRef(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetName, setSheetName] = useState("");
+  const [sheetRows, setSheetRows] = useState([]);
+
+  const handleOpenSheet = () => {
+    if (fileRef.current) fileRef.current.click();
+  };
+
+  const handleFileChange = async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setSheetName(f.name);
+
+    // Chỉ đọc văn bản (csv/tsv/txt). Nếu muốn .xlsx → gợi ý dùng SheetJS.
+    if (/\.(csv|tsv|txt)$/i.test(f.name)) {
+      const text = await f.text();
+      const rows = parseDelimited(text);
+      setSheetRows(rows);
+      setSheetOpen(true);
+    } else {
+      // fallback: thông báo nhanh
+      alert("Tạm thời chỉ hỗ trợ CSV/TSV/TXT. Vui lòng xuất file .csv hoặc .tsv.");
+      e.target.value = ""; // reset
+    }
+  };
 
   const calc = useMemo(() => {
     const r = Math.max(0, parseNum(rate));
     const yenTotal = Math.max(0, parseNum(totalYen));
 
-    // Giá gốc quy đổi (tham khảo)
     const baseVND = yenTotal * r;
-
-    // Công mua theo bậc thang theo SỐ LƯỢNG (≤25k¥) / ngược lại 2%
     const serviceFeeJPY = getServiceFeeJPY(yenTotal, qty);
     const serviceFeeVND = serviceFeeJPY * r;
-
-    // Giá VND (ước tính) = (Tổng ¥ + Công mua ¥) × tỷ giá
     const priceVND = (yenTotal + serviceFeeJPY) * r;
 
-    // Phí ship từ người bán (¥ → VND)
     const sellerShipVND = Math.max(0, parseNum(sellerShipYen)) * r;
-
-    // Ship khác (đã ở VND)
     const shipJVN = Math.max(0, parseNum(shipJPVN));
     const shipLocal = Math.max(0, parseNum(shipVN));
-
-    // Phụ thu (VND)
     const extra = Math.max(0, parseNum(surchargeVND));
 
-    // Tổng thanh toán = Giá VND mới + các phí VND
     const total = priceVND + extra + sellerShipVND + shipJVN + shipLocal;
 
-    // Khối lượng quy đổi (tham khảo)
     const volWeight =
       (Math.max(0, parseNum(lenCm)) *
         Math.max(0, parseNum(widCm)) *
-        Math.max(0, parseNum(heiCm))) / 6000;
+        Math.max(0, parseNum(heiCm))) /
+      6000;
 
     return {
       baseVND,
@@ -192,6 +235,16 @@ export default function OrderPriceCalculator() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-white to-gray-50 text-gray-900">
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".csv,.tsv,.txt"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
+      <SheetModal open={sheetOpen} onClose={() => setSheetOpen(false)} name={sheetName} rows={sheetRows} />
+
       <div className="max-w-5xl mx-auto p-6 md:p-10">
         {/* 1) Thông tin sản phẩm */}
         <section className="relative bg-white rounded-2xl shadow-sm border p-5 md:p-6 mb-6 pb-4">
@@ -204,23 +257,14 @@ export default function OrderPriceCalculator() {
             </div>
           </div>
 
-          {/* Hàng trên: Tổng (trái) + SL (phải). Hàng giữa (phải): Công mua. Hàng dưới: Giá VND full */}
           <div className="grid grid-cols-10 md:grid-cols-2 gap-4">
-            {/* Tổng giá trị đơn hàng (¥) – trái */}
             <div className=" col-span-10 md:col-span-1">
-              <Field
-                label="Tổng đơn (¥)"
-                required
-                hint={"Bạn có thể làm phép cộng các đơn hàng ở ô này"}
-              >
-                <div className="text-xs text-gray-400 mb-1">
-                  ~ {VND.format(calc.priceVND)}
-                </div>
-
+              <Field label="Tổng đơn (¥)" required hint={"Bạn có thể làm phép cộng các đơn hàng ở ô này"}>
+                <div className="text-xs text-gray-400 mb-1">~ {VND.format(calc.priceVND)}</div>
                 <textarea
                   rows={1}
                   type="text"
-                  inputMode="text" 
+                  inputMode="text"
                   pattern="[0-9+\\-*/().]*"
                   className={INPUT_BASE + " resize-none overflow-hidden text-base font-medium"}
                   placeholder="vd: 1000+500*2"
@@ -231,37 +275,28 @@ export default function OrderPriceCalculator() {
                     const raw = e.target.value.replace(/^0+(?=\d)/, "");
                     setTotalYenInput(raw);
                     const v = evalExpr(raw);
-                    setTotalYen(prev => (v === "" ? (prev ?? 0) : v));
+                    setTotalYen((prev) => (v === "" ? prev ?? 0 : v));
                   }}
                 />
               </Field>
             </div>
-            
-            {/* SL – phải (cùng hàng với Tổng) */}
+
             <div className="col-span-10 md:col-span-1">
-              <Field
-                label="SL"
-                required
-                hint="Trên 10 vui lòng liên hệ shop để đặt số lượng lớn."
-              >
+              <Field label="SL" required hint="Trên 10 vui lòng liên hệ shop để đặt số lượng lớn.">
                 <input
                   type="number"
                   min={1}
                   inputMode="numeric"
                   className={INPUT_BASE + "resize-none overflow-hidden text-base font-medium"}
-                  
                   value={qty}
                   onChange={(e) => setQty(Math.max(0, parseNum(e.target.value)))}
                 />
                 {qty > 10 && (
-                  <div className="mt-1 text-xs text-red-600">
-                    Số lượng &gt; 10 — vui lòng liên hệ shop.
-                  </div>
+                  <div className="mt-1 text-xs text-red-600">Số lượng &gt; 10 — vui lòng liên hệ shop.</div>
                 )}
               </Field>
             </div>
 
-            {/* Công mua – ngay dưới SL, vẫn ở cột phải */}
             <div className="col-span-10 md:col-span-1">
               <Field
                 label="Công mua"
@@ -274,15 +309,9 @@ export default function OrderPriceCalculator() {
               </Field>
             </div>
 
-            {/* Giá VND (ước tính) – luôn dưới cùng, full width */}
             <div className="col-span-10 md:col-span-1">
-              <Field
-                label="Giá VND (ước tính)"
-                hint="(Tổng ¥ + Công mua ¥) × Tỷ giá. Chưa gồm ship/phụ thu."
-              >
-                <div className="text-lg font-semibold">
-                  {VND.format(calc.priceVND)}
-                </div>
+              <Field label="Giá VND (ước tính)" hint="(Tổng ¥ + Công mua ¥) × Tỷ giá. Chưa gồm ship/phụ thu.">
+                <div className="text-lg font-semibold">{VND.format(calc.priceVND)}</div>
               </Field>
             </div>
           </div>
@@ -290,165 +319,125 @@ export default function OrderPriceCalculator() {
 
         {/* 2) Kích thước, phí ship */}
         <section className="bg-white rounded-2xl shadow-sm border p-5 md:p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">2) Kích thước, phí ship</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">2) Kích thước, phí ship</h2>
 
-          {/* Hàng 1: Cân nặng (full width) */}
+            <div className="flex items-center gap-2">
+              {/* Nút tải PDF phụ thu về máy khách */}
+              <button
+                type="button"
+                onClick={handleOpenSurchargePDF}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
+                title="Tải phu_thu.pdf về máy của khách"
+              >
+                Bảng phụ thu
+              </button>
+            </div>
+          </div>
+
+          {/* Hàng 1: Cân nặng */}
           <div className="mb-4">
             <Field label="Cân nặng dự kiến (kg)" hint="Khối lượng thực tế ước tính của kiện hàng.">
               <div className="relative">
                 <input
-                  type="text"           // dùng text để không bị trình duyệt ép
-                  inputMode="decimal"   // vẫn mở keypad số trên mobile
-                  className={INPUT_BASE + " w-full pr-10"}  // chừa chỗ cho 'kg'
+                  type="text"
+                  inputMode="decimal"
+                  className={INPUT_BASE + " w-full pr-10"}
                   placeholder="Nhập số"
-                  value={weightKg ?? ""}                     // cho phép hiển thị rỗng
+                  value={weightKg ?? ""}
                   onChange={(e) => {
-                    // chỉ giữ số và dấu chấm, cho phép rỗng ""
                     const v = e.target.value.replace(/[^\d.]/g, "");
                     setWeightKg(v);
                   }}
                   onBlur={() => {
-                    // khi rời ô: nếu có giá trị thì chuẩn hoá về số
-                    if (weightKg !== "" && weightKg != null) {
-                      setWeightKg(String(parseNum(weightKg)));
-                    }
+                    if (weightKg !== "" && weightKg != null) setWeightKg(String(parseNum(weightKg)));
                   }}
                 />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
-                  kg
-                </span>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">kg</span>
               </div>
             </Field>
           </div>
-                   
 
-
-          {/* Hàng 2: Dài – Rộng – Cao (luôn cùng 1 hàng, tự co giãn) */}
+          {/* Dài – Rộng – Cao */}
           <div className="mb-4">
             <div className="grid grid-cols-3 gap-4">
               <div className="min-w-0">
-                {/* Dài (cm) – cho phép trống, có đơn vị trong ô */}
                 <Field label="Dài" hint="Chiều dài thùng sau khi đóng gói.">
                   <div className="relative">
                     <input
-                      type="text"              // dùng text để không bị ép hiển thị 0
-                      inputMode="decimal"      // mobile vẫn bật keypad số
+                      type="text"
+                      inputMode="decimal"
                       className={INPUT_BASE + " w-full pr-10"}
                       placeholder="Nhập số"
-                      value={lenCm ?? ""}      // cho phép rỗng
-                      onChange={(e) => {
-                        const v = e.target.value.replace(/[^\d.]/g, ""); // chỉ giữ số & dấu chấm
-                        setLenCm(v);             // KHÔNG parse ngay → tránh hiện 0 khi xoá hết
-                      }}
+                      value={lenCm ?? ""}
+                      onChange={(e) => setLenCm(e.target.value.replace(/[^\d.]/g, ""))}
                       onBlur={() => {
-                        if (lenCm === "" || lenCm == null) return;
-                        // chuẩn hoá khi rời ô (tùy chọn): "0012.0" -> "12"
-                        setLenCm(String(parseNum(lenCm)));
+                        if (lenCm !== "" && lenCm != null) setLenCm(String(parseNum(lenCm)));
                       }}
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
-                      cm
-                    </span>
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">cm</span>
                   </div>
                 </Field>
-
               </div>
-              
               <div className="min-w-0">
                 <Field label="Rộng" hint="Chiều rộng thùng sau khi đóng gói.">
                   <div className="relative">
                     <input
-                      type="text"              // dùng text để không bị ép hiển thị 0
-                      inputMode="decimal"      // mobile vẫn bật keypad số
+                      type="text"
+                      inputMode="decimal"
                       className={INPUT_BASE + " w-full pr-10"}
                       placeholder="Nhập số"
-                      value={widCm ?? ""}      // cho phép rỗng
-                      onChange={(e) => {
-                        const v = e.target.value.replace(/[^\d.]/g, ""); // chỉ giữ số & dấu chấm
-                        setWidCm(v);             // KHÔNG parse ngay → tránh hiện 0 khi xoá hết
-                      }}
+                      value={widCm ?? ""}
+                      onChange={(e) => setWidCm(e.target.value.replace(/[^\d.]/g, ""))}
                       onBlur={() => {
-                        if (widCm === "" || widCm == null) return;
-                        // chuẩn hoá khi rời ô (tùy chọn): "0012.0" -> "12"
-                        setWidCm(String(parseNum(widCm)));
+                        if (widCm !== "" && widCm != null) setWidCm(String(parseNum(widCm)));
                       }}
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
-                      cm
-                    </span>
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">cm</span>
                   </div>
                 </Field>
               </div>
-
               <div className="min-w-0">
                 <Field label="Cao" hint="Chiều cao thùng sau khi đóng gói.">
                   <div className="relative">
                     <input
-                      type="text"              // dùng text để không bị ép hiển thị 0
-                      inputMode="decimal"      // mobile vẫn bật keypad số
+                      type="text"
+                      inputMode="decimal"
                       className={INPUT_BASE + " w-full pr-10"}
                       placeholder="Nhập số"
-                      value={heiCm ?? ""}      // cho phép rỗng
-                      onChange={(e) => {
-                        const v = e.target.value.replace(/[^\d.]/g, ""); // chỉ giữ số & dấu chấm
-                        setHeiCm(v);             // KHÔNG parse ngay → tránh hiện 0 khi xoá hết
-                      }}
+                      value={heiCm ?? ""}
+                      onChange={(e) => setHeiCm(e.target.value.replace(/[^\d.]/g, ""))}
                       onBlur={() => {
-                        if (heiCm === "" || heiCm == null) return;
-                        // chuẩn hoá khi rời ô (tùy chọn): "0012.0" -> "12"
-                        setHeiCm(String(parseNum(heiCm)));
+                        if (heiCm !== "" && heiCm != null) setHeiCm(String(parseNum(heiCm)));
                       }}
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
-                      cm
-                    </span>
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">cm</span>
                   </div>
                 </Field>
               </div>
             </div>
           </div>
-                          
 
           {/* Các phí khác */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Field label="Phí ship từ người bán (¥)" hint="Phí nội địa Nhật; sẽ quy đổi sang VND.">
-                <input
-                  type="number"
-                  className={INPUT_BASE}
-                  value={sellerShipYen}
-                  onChange={(e)=>setSellerShipYen(parseNum(e.target.value))}
-                />
+                <input type="number" className={INPUT_BASE} value={sellerShipYen} onChange={(e) => setSellerShipYen(parseNum(e.target.value))} />
               </Field>
             </div>
             <div>
               <Field label="Phí ship Nhật–Việt (VND)" hint="Cước quốc tế Nhật → Việt Nam.">
-                <input
-                  type="number"
-                  className={INPUT_BASE}
-                  value={shipJPVN}
-                  onChange={(e)=>setShipJPVN(parseNum(e.target.value))}
-                />
+                <input type="number" className={INPUT_BASE} value={shipJPVN} onChange={(e) => setShipJPVN(parseNum(e.target.value))} />
               </Field>
             </div>
             <div>
               <Field label="Phí ship nội địa Việt Nam (VND)" hint="Cước giao hàng trong nước.">
-                <input
-                  type="number"
-                  className={INPUT_BASE}
-                  value={shipVN}
-                  onChange={(e)=>setShipVN(parseNum(e.target.value))}
-                />
+                <input type="number" className={INPUT_BASE} value={shipVN} onChange={(e) => setShipVN(parseNum(e.target.value))} />
               </Field>
             </div>
             <div className="md:col-span-3">
               <Field label="Phụ thu (VND)" hint="Các khoản phát sinh thêm nếu có.">
-                <input
-                  type="number"
-                  className={INPUT_BASE}
-                  value={surchargeVND}
-                  onChange={(e)=>setSurchargeVND(parseNum(e.target.value))}
-                />
+                <input type="number" className={INPUT_BASE} value={surchargeVND} onChange={(e) => setSurchargeVND(parseNum(e.target.value))} />
               </Field>
             </div>
           </div>
@@ -460,7 +449,6 @@ export default function OrderPriceCalculator() {
             </div>
           </div>
         </section>
-
 
         {/* 3) Kết quả */}
         <section className="bg-white rounded-2xl shadow-sm border p-5 md:p-6 mb-6">
