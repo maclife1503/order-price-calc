@@ -59,6 +59,14 @@ function Field({ label, hint, required, children }) {
   );
 }
 
+function Field_grey({ label, hint, required, children }) {
+  return (
+    <div>
+      <InfoLabel label={label} hint={hint} required={required} />
+      <div className="rounded-xl border border-gray-200 px-3 py-2 bg-gray-100">{children}</div>
+    </div>
+  );
+}
 const INPUT_BASE =
   "w-full bg-transparent border-0 outline-none focus:ring-0 placeholder-gray-400 text-gray-900";
 
@@ -298,7 +306,7 @@ export default function OrderPriceCalculator() {
             </div>
 
             <div className="col-span-10 md:col-span-1">
-              <Field
+              <Field_grey
                 label="Công mua"
                 hint={"càng mua nhiều càng rẻ\n≤ 25,000¥: 1 đơn 500¥; 2–5 đơn 400¥/đơn; 6–10 đơn 300¥/đơn.\n> 25,000¥: 2%."}
               >
@@ -306,13 +314,13 @@ export default function OrderPriceCalculator() {
                   <div className="text-lg font-semibold">{VND.format(calc.serviceFeeVND)}</div>
                   <div className="text-xs text-gray-500">({GEN.format(calc.serviceFeeJPY)}¥)</div>
                 </div>
-              </Field>
+              </Field_grey>
             </div>
 
             <div className="col-span-10 md:col-span-1">
-              <Field label="Giá VND (ước tính)" hint="(Tổng ¥ + Công mua ¥) × Tỷ giá. Chưa gồm ship/phụ thu.">
+              <Field_grey label="Giá VND (ước tính)" hint="(Tổng ¥ + Công mua ¥) × Tỷ giá. Chưa gồm ship/phụ thu.">
                 <div className="text-lg font-semibold">{VND.format(calc.priceVND)}</div>
-              </Field>
+              </Field_grey>
             </div>
           </div>
         </section>
@@ -343,7 +351,7 @@ export default function OrderPriceCalculator() {
                 <input
                   type="text"
                   inputMode="decimal"
-                  className={INPUT_BASE + " w-full pr-10"}
+                  className={INPUT_BASE + "text-sm w-full pr-10"}
                   placeholder="Nhập số"
                   value={weightKg ?? ""}
                   onChange={(e) => {
@@ -356,30 +364,30 @@ export default function OrderPriceCalculator() {
                     }
                   }}
                 />
-                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-sm text-gray-400">
                   kg
                 </span>
               </div>
             </Field>
 
             {/* Cột 2: Khối lượng quy đổi */}
-            <Field
+            <Field_grey
               label="Khối lượng quy đổi"
               hint="(L×W×H / 6000)"
             >
-              <div className="relative">
+              <div className="relative ">
                 <input
                   type="text"
                   readOnly
-                  className={INPUT_BASE + " w-full pr-10"}
+                  className={INPUT_BASE + " text-sm w-full pr-10"}
                   placeholder="L×W×H / 6000"
                   value={calc.volWeight ? GEN.format(calc.volWeight) : ""}
                 />
-                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-sm text-gray-400 ">
                   kg
                 </span>
               </div>
-            </Field>
+            </Field_grey>
           </div>
 
 
