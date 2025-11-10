@@ -248,7 +248,7 @@ export default function OrderPriceCalculator() {
       <div className="max-w-5xl mx-auto p-6 md:p-10">
         {/* 1) Thông tin sản phẩm */}
         <section className="relative bg-white rounded-2xl shadow-sm border p-5 md:p-6 mb-6 pb-4">
-          <h2 className="text-base font-semibold mb-4 ">1) Thông tin sản phẩm</h2>
+          <h2 className="text-base font-semibold mb-4 ">THÔNG TIN SẢN PHẨM</h2>
 
           <div className="absolute top-3 right-4 text-sm text-gray-600">
             <div className="text-center text-gray-600">
@@ -320,14 +320,14 @@ export default function OrderPriceCalculator() {
         {/* 2) Kích thước, phí ship */}
         <section className="bg-white rounded-2xl shadow-sm border p-5 md:p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">2) Kích thước, phí ship</h2>
+            <h2 className="text-lg font-semibold">PHÍ SHIP</h2>
 
             <div className="flex items-center gap-2">
               {/* Nút tải PDF phụ thu về máy khách */}
               <button
                 type="button"
                 onClick={handleOpenSurchargePDF}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50 text-xs"
                 title="Tải phu_thu.pdf về máy của khách"
               >
                 Bảng phụ thu
@@ -335,8 +335,9 @@ export default function OrderPriceCalculator() {
             </div>
           </div>
 
-          {/* Hàng 1: Cân nặng */}
-          <div className="mb-4">
+          {/* Hàng 1: Cân nặng + Khối lượng quy đổi */}
+          <div className="mb-4 grid grid-cols-2 gap-4">
+            {/* Cột 1: Cân nặng dự kiến */}
             <Field label="Cân nặng dự kiến (kg)" hint="Khối lượng thực tế ước tính của kiện hàng.">
               <div className="relative">
                 <input
@@ -350,68 +351,92 @@ export default function OrderPriceCalculator() {
                     setWeightKg(v);
                   }}
                   onBlur={() => {
-                    if (weightKg !== "" && weightKg != null) setWeightKg(String(parseNum(weightKg)));
+                    if (weightKg !== "" && weightKg != null) {
+                      setWeightKg(String(parseNum(weightKg)));
+                    }
                   }}
                 />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">kg</span>
+                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                  kg
+                </span>
+              </div>
+            </Field>
+
+            {/* Cột 2: Khối lượng quy đổi */}
+            <Field
+              label="Khối lượng quy đổi"
+              hint="(L×W×H / 6000)"
+            >
+              <div className="relative">
+                <input
+                  type="text"
+                  readOnly
+                  className={INPUT_BASE + " w-full pr-10"}
+                  placeholder="L×W×H / 6000"
+                  value={calc.volWeight ? GEN.format(calc.volWeight) : ""}
+                />
+                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                  kg
+                </span>
               </div>
             </Field>
           </div>
+
+
 
           {/* Dài – Rộng – Cao */}
           <div className="mb-4">
             <div className="grid grid-cols-3 gap-4">
               <div className="min-w-0">
-                <Field label="Dài" hint="Chiều dài thùng sau khi đóng gói.">
+                <Field label="Dài" required hint="Chiều dài thùng sau khi đóng gói.">
                   <div className="relative">
                     <input
                       type="text"
                       inputMode="decimal"
                       className={INPUT_BASE + " w-full pr-10"}
-                      placeholder="Nhập số"
+
                       value={lenCm ?? ""}
                       onChange={(e) => setLenCm(e.target.value.replace(/[^\d.]/g, ""))}
                       onBlur={() => {
                         if (lenCm !== "" && lenCm != null) setLenCm(String(parseNum(lenCm)));
                       }}
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">cm</span>
+                    <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-sm text-gray-400">cm</span>
                   </div>
                 </Field>
               </div>
+              
               <div className="min-w-0">
-                <Field label="Rộng" hint="Chiều rộng thùng sau khi đóng gói.">
+                <Field label="Rộng" required hint="Chiều rộng thùng sau khi đóng gói.">
                   <div className="relative">
                     <input
                       type="text"
                       inputMode="decimal"
                       className={INPUT_BASE + " w-full pr-10"}
-                      placeholder="Nhập số"
                       value={widCm ?? ""}
                       onChange={(e) => setWidCm(e.target.value.replace(/[^\d.]/g, ""))}
                       onBlur={() => {
                         if (widCm !== "" && widCm != null) setWidCm(String(parseNum(widCm)));
                       }}
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">cm</span>
+                    <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-sm text-gray-400">cm</span>
                   </div>
                 </Field>
               </div>
               <div className="min-w-0">
-                <Field label="Cao" hint="Chiều cao thùng sau khi đóng gói.">
+                <Field label="Cao" required hint="Chiều cao thùng sau khi đóng gói.">
                   <div className="relative">
                     <input
                       type="text"
                       inputMode="decimal"
                       className={INPUT_BASE + " w-full pr-10"}
-                      placeholder="Nhập số"
                       value={heiCm ?? ""}
                       onChange={(e) => setHeiCm(e.target.value.replace(/[^\d.]/g, ""))}
                       onBlur={() => {
                         if (heiCm !== "" && heiCm != null) setHeiCm(String(parseNum(heiCm)));
                       }}
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">cm</span>
+                    <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-sm text-gray-400">cm</span>
                   </div>
                 </Field>
               </div>
@@ -436,7 +461,7 @@ export default function OrderPriceCalculator() {
               </Field>
             </div>
             <div className="md:col-span-3">
-              <Field label="Phụ thu (VND)" hint="Các khoản phát sinh thêm nếu có.">
+              <Field label="Phụ thu (VND)" required hint="Các khoản phát sinh thêm nếu có.">
                 <input type="number" className={INPUT_BASE} value={surchargeVND} onChange={(e) => setSurchargeVND(parseNum(e.target.value))} />
               </Field>
             </div>
@@ -452,20 +477,20 @@ export default function OrderPriceCalculator() {
 
         {/* 3) Kết quả */}
         <section className="bg-white rounded-2xl shadow-sm border p-5 md:p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">3) Kết quả</h2>
+          <h2 className="text-lg font-semibold mb-4">KẾT QUẢ</h2>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span>1) Giá gốc</span><span>{VND.format(calc.baseVND)}</span></div>
-            <div className="flex justify-between"><span>2) Công mua</span><span>{VND.format(calc.serviceFeeVND)} ({GEN.format(calc.serviceFeeJPY)}¥)</span></div>
-            <div className="flex justify-between"><span>3) Phụ thu</span><span>{VND.format(calc.extra)}</span></div>
-            <div className="flex justify-between"><span>4) Phí ship từ người bán (¥)</span><span>{GEN.format(parseNum(sellerShipYen))}¥ ({VND.format(calc.sellerShipVND)})</span></div>
-            <div className="flex justify-between"><span>5) Phí ship Nhật–Việt</span><span>{VND.format(calc.shipJVN)}</span></div>
-            <div className="flex justify-between"><span>6) Phí ship nội địa Việt Nam</span><span>{VND.format(calc.shipLocal)}</span></div>
+            <div className="flex justify-between"><span> Tổng đơn</span><span>{VND.format(calc.baseVND)}</span></div>
+            <div className="flex justify-between"><span> Công mua</span><span>{VND.format(calc.serviceFeeVND)} ({GEN.format(calc.serviceFeeJPY)}¥)</span></div>
+            <div className="flex justify-between"><span> Phụ thu</span><span>{VND.format(calc.extra)}</span></div>
+            <div className="flex justify-between"><span> Phí ship từ người bán (¥)</span><span>{GEN.format(parseNum(sellerShipYen))}¥ ({VND.format(calc.sellerShipVND)})</span></div>
+            <div className="flex justify-between"><span> Phí ship Nhật–Việt</span><span>{VND.format(calc.shipJVN)}</span></div>
+            <div className="flex justify-between"><span> Phí ship nội địa Việt Nam</span><span>{VND.format(calc.shipLocal)}</span></div>
           </div>
         </section>
 
         {/* 4) Tổng thanh toán */}
         <section className="bg-white rounded-2xl shadow-sm border p-5 md:p-6">
-          <h2 className="text-lg font-semibold mb-4">4) Tổng thanh toán</h2>
+          <h2 className="text-lg font-semibold mb-4">TỔNG THANH TOÁN</h2>
           <div className="flex justify-between items-baseline">
             <div className="text-gray-900 font-semibold">TỔNG</div>
             <div className="text-2xl font-bold">{VND.format(calc.total)}</div>
