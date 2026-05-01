@@ -533,21 +533,21 @@ export default function OrderPriceCalculator() {
                           >
                             {item.shortText}
                           </a>
-                          <div className="flex items-center gap-4 mt-2">
-                            <div className="flex items-center gap-1.5 border-b border-gray-300 pb-0.5">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 mt-3">
+                            <div className="flex items-center gap-2 border-b border-gray-200 pb-1">
                               <span className="text-gray-500 text-xs whitespace-nowrap">Giá ¥:</span>
                               <input
                                 type="number"
-                                className="w-20 bg-transparent outline-none text-sm text-gray-900"
+                                className="w-full sm:w-24 bg-transparent outline-none text-sm font-medium text-gray-900"
                                 value={item.priceYen}
                                 onChange={(e) => updateProductLink(item.id, "priceYen", e.target.value)}
                               />
                             </div>
-                            <div className="flex items-center gap-1.5 border-b border-gray-300 pb-0.5">
-                              <span className="text-gray-500 text-xs whitespace-nowrap">Phí ship từ người bán ¥:</span>
+                            <div className="flex items-center gap-2 border-b border-gray-200 pb-1">
+                              <span className="text-gray-500 text-xs whitespace-nowrap">Ship ¥:</span>
                               <input
                                 type="number"
-                                className="w-20 bg-transparent outline-none text-sm text-gray-900"
+                                className="w-full sm:w-24 bg-transparent outline-none text-sm font-medium text-gray-900"
                                 value={item.shipYen}
                                 onChange={(e) => updateProductLink(item.id, "shipYen", e.target.value)}
                               />
