@@ -295,11 +295,12 @@ export default function OrderPriceCalculator() {
     }
   };
 
-  const addProductLink = () => {
+  const addProductLink = async () => {
     const raw = String(productLinkInput || "").trim();
     if (!raw) return;
 
     const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    const newId = crypto.randomUUID();
 
     setProductLinks((prev) => {
       const existed = prev.some((item) => item.url === normalized);
@@ -308,16 +309,37 @@ export default function OrderPriceCalculator() {
       return [
         ...prev,
         {
-          id: crypto.randomUUID(),
+          id: newId,
           url: normalized,
           shortText: shortenUrlDisplay(normalized),
           priceYen: "",
           shipYen: "",
+          imageUrl: "",
+          isLoading: true,
         },
       ];
     });
 
     setProductLinkInput("");
+
+    try {
+      // Sử dụng proxy nội bộ thay vì Microlink
+      const proxyBase = window.location.hostname === "localhost"
+        ? "https://order-jp.netlify.app/.netlify/functions/get-metadata"
+        : "/.netlify/functions/get-metadata";
+
+      const res = await fetch(`${proxyBase}?url=${encodeURIComponent(normalized)}`);
+      const json = await res.json();
+
+      if (json && !json.error) {
+        if (json.image) updateProductLink(newId, "imageUrl", json.image);
+        if (json.title) updateProductLink(newId, "shortText", json.title);
+      }
+    } catch (err) {
+      console.error("Scraper error:", err);
+    } finally {
+      updateProductLink(newId, "isLoading", false);
+    }
   };
 
   const removeProductLink = (id) => {
