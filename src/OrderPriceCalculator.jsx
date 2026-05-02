@@ -214,6 +214,33 @@ export default function OrderPriceCalculator() {
 
   // ===== 1) Thông tin sản phẩm
   const [rate, setRate] = useState(180);
+  const [isFetchingRate, setIsFetchingRate] = useState(false);
+  const CURRENCY_API_KEY = "cur_live_jun4pGkxNiwPm22TQtjO8G29mE4N0GTG2sIEhtlv"; // Điền API Key của bạn vào đây
+
+  const fetchLatestRate = async () => {
+    if (!CURRENCY_API_KEY) {
+      alert("Vui lòng cấu hình CurrencyAPI Key trong code.");
+      return;
+    }
+    setIsFetchingRate(true);
+    try {
+      const res = await fetch(
+        `https://api.currencyapi.com/v3/latest?apikey=${CURRENCY_API_KEY}&currencies=VND&base_currency=JPY`
+      );
+      const json = await res.json();
+      if (json.data && json.data.VND) {
+        const rawRate = json.data.VND.value;
+        setRate(Math.round(rawRate));
+      } else {
+        throw new Error("Dữ liệu không hợp lệ");
+      }
+    } catch (error) {
+      console.error("Lỗi cập nhật tỉ giá:", error);
+      alert("Không thể lấy tỉ giá mới. Vui lòng thử lại sau.");
+    } finally {
+      setIsFetchingRate(false);
+    }
+  };
   const [totalYen, setTotalYen] = useState(0);
   const [qty, setQty] = useState(1);
   const [totalYenInput, setTotalYenInput] = useState("");
@@ -494,6 +521,31 @@ export default function OrderPriceCalculator() {
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
               />
+            </Field>
+
+            <Field label="Tỉ giá (đ / 1¥)">
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  className={INPUT_BASE}
+                  placeholder="VD: 180"
+                  value={rate}
+                  onChange={(e) => setRate(parseNum(e.target.value))}
+                />
+                <button
+                  type="button"
+                  onClick={fetchLatestRate}
+                  disabled={isFetchingRate}
+                  className="shrink-0 px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-sm flex items-center gap-1"
+                >
+                  {isFetchingRate ? (
+                    <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    "🔄"
+                  )}
+                  {isFetchingRate ? "Đang lấy..." : "Cập nhật"}
+                </button>
+              </div>
             </Field>
           </div>
         </section>
