@@ -212,16 +212,36 @@ export default function OrderPriceCalculator() {
   });
   const [customerName, setCustomerName] = useState("");
 
-  // ===== 1) Thông tin sản phẩm
-  const [rate, setRate] = useState(180);
-  const [isFetchingRate, setIsFetchingRate] = useState(false);
-  const CURRENCY_API_KEY = "cur_live_jun4pGkxNiwPm22TQtjO8G29mE4N0GTG2sIEhtlv"; // Điền API Key của bạn vào đây
+  // ===== 1) Thông tin sản phẩm và Tỉ giá
+  const [rate, setRate] = useState(() => {
+    try {
+      const cached = localStorage.getItem("order_calc_rate");
+      return cached ? JSON.parse(cached).rate : 180;
+    } catch (e) {
+      return 180;
+    }
+  });
+  const [lastFetched, setLastFetched] = useState(() => {
+    try {
+      const cached = localStorage.getItem("order_calc_rate");
+      return cached ? JSON.parse(cached).timestamp : null;
+    } catch (e) {
+      return null;
+    }
+  });
 
-  const fetchLatestRate = async () => {
-    if (!CURRENCY_API_KEY) {
-      alert("Vui lòng cấu hình CurrencyAPI Key trong code.");
+  const [isFetchingRate, setIsFetchingRate] = useState(false);
+  const CURRENCY_API_KEY = "cur_live_jun4pGkxNiwPm22TQtjO8G29mE4N0GTG2sIEhtlv";
+
+  const fetchLatestRate = async (force = false) => {
+    if (!CURRENCY_API_KEY) return;
+
+    const now = Date.now();
+    // Chỉ tự động fetch nếu dữ liệu cũ hơn 12 tiếng
+    if (!force && lastFetched && now - lastFetched < 12 * 60 * 60 * 1000) {
       return;
     }
+
     setIsFetchingRate(true);
     try {
       const res = await fetch(
@@ -230,17 +250,25 @@ export default function OrderPriceCalculator() {
       const json = await res.json();
       if (json.data && json.data.VND) {
         const rawRate = json.data.VND.value;
-        setRate(Math.round(rawRate));
-      } else {
-        throw new Error("Dữ liệu không hợp lệ");
+        const finalRate = Math.round(rawRate) + 10; // +10 như yêu cầu
+        setRate(finalRate);
+        setLastFetched(now);
+        localStorage.setItem(
+          "order_calc_rate",
+          JSON.stringify({ rate: finalRate, timestamp: now })
+        );
       }
     } catch (error) {
       console.error("Lỗi cập nhật tỉ giá:", error);
-      alert("Không thể lấy tỉ giá mới. Vui lòng thử lại sau.");
+      if (force) alert("Không thể lấy tỉ giá mới. Vui lòng thử lại sau.");
     } finally {
       setIsFetchingRate(false);
     }
   };
+
+  useEffect(() => {
+    fetchLatestRate();
+  }, []);
   const [totalYen, setTotalYen] = useState(0);
   const [qty, setQty] = useState(1);
   const [totalYenInput, setTotalYenInput] = useState("");
@@ -463,7 +491,39 @@ export default function OrderPriceCalculator() {
   ]);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-b from-white to-gray-50 text-gray-900">
+    <div className="min-h-screen w-full bg-gradient-to-b from-white to-gray-50 text-gray-900 pb-10">
+      {/* Thanh Tỉ giá nổi bật ở đầu trang */}
+      <div className="bg-indigo-600 text-white py-2.5 px-4 shadow-md sticky top-0 z-[60]">
+        <div className="max-w-5xl mx-auto flex flex-wrap justify-between items-center gap-2">
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 p-1 rounded-md">
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-2">
+              <span className="text-[10px] uppercase tracking-widest opacity-80 font-bold">Tỷ giá hôm nay:</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-lg font-bold tracking-tight">{GEN.format(rate)}</span>
+                <span className="text-xs opacity-90 font-medium text-indigo-100">đ / 1¥</span>
+                <span className="text-[10px] ml-1 px-1.5 py-0.5 bg-green-500/30 rounded-full border border-white/20">
+                  (Đã +10đ)
+                </span>
+              </div>
+            </div>
+          </div>
+          {lastFetched && (
+            <div className="flex items-center gap-2">
+              <div className="text-right">
+                <div className="text-[9px] opacity-70 uppercase leading-none">Cập nhật lần cuối</div>
+                <div className="text-[10px] font-medium text-indigo-100">
+                  {new Date(lastFetched).toLocaleString("vi-VN", { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
       <input
         ref={fileRef}
         type="file"
@@ -524,7 +584,7 @@ export default function OrderPriceCalculator() {
             </Field>
 
             <Field label="Tỉ giá (đ / 1¥)">
-              <div className="flex gap-2">
+              <div className="relative">
                 <input
                   type="number"
                   className={INPUT_BASE}
@@ -532,19 +592,6 @@ export default function OrderPriceCalculator() {
                   value={rate}
                   onChange={(e) => setRate(parseNum(e.target.value))}
                 />
-                <button
-                  type="button"
-                  onClick={fetchLatestRate}
-                  disabled={isFetchingRate}
-                  className="shrink-0 px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-sm flex items-center gap-1"
-                >
-                  {isFetchingRate ? (
-                    <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    "🔄"
-                  )}
-                  {isFetchingRate ? "Đang lấy..." : "Cập nhật"}
-                </button>
               </div>
             </Field>
           </div>
