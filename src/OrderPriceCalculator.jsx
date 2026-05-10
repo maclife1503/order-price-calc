@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 
-const TG_BOT_TOKEN = "8699946762:AAGXlhClqgTcKhFWjQ8UqkyoRgWylWD-blQ";
-const TG_CHAT_ID = "8699946762";
+const TG_BOT_TOKEN = import.meta.env.VITE_TG_BOT_TOKEN;
+const TG_CHAT_ID = import.meta.env.VITE_TG_CHAT_ID;
 
 // == Currency / number formatters
 const VND = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
@@ -236,7 +236,7 @@ export default function OrderPriceCalculator() {
   });
 
   const [isFetchingRate, setIsFetchingRate] = useState(false);
-  const CURRENCY_API_KEY = "cur_live_jun4pGkxNiwPm22TQtjO8G29mE4N0GTG2sIEhtlv";
+  const CURRENCY_API_KEY = import.meta.env.VITE_CURRENCY_API_KEY;
 
   const fetchLatestRate = async (force = false) => {
     if (!CURRENCY_API_KEY) return;
