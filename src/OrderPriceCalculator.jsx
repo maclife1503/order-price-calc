@@ -237,8 +237,8 @@ export default function OrderPriceCalculator() {
     if (!CURRENCY_API_KEY) return;
 
     const now = Date.now();
-    // Chỉ tự động fetch nếu dữ liệu cũ hơn 12 tiếng
-    if (!force && lastFetched && now - lastFetched < 12 * 60 * 60 * 1000) {
+    // Chỉ tự động fetch nếu dữ liệu cũ hơn 6 tiếng (tương ứng 4 lần/ngày: 0h, 6h, 12h, 18h)
+    if (!force && lastFetched && now - lastFetched < 6 * 60 * 60 * 1000) {
       return;
     }
 
