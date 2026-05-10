@@ -1,4 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
+
+const TG_BOT_TOKEN = "8699946762:AAGXlhClqgTcKhFWjQ8UqkyoRgWylWD-blQ";
+const TG_CHAT_ID = "8699946762";
 
 // == Currency / number formatters
 const VND = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
@@ -326,8 +331,68 @@ export default function OrderPriceCalculator() {
   const [sheetName, setSheetName] = useState("");
   const [sheetRows, setSheetRows] = useState([]);
 
+  const [isSendingTg, setIsSendingTg] = useState(false);
+
+  const sendPDFToTelegram = async () => {
+    const printArea = document.getElementById("printable-area");
+    if (!printArea) return;
+
+    setIsSendingTg(true);
+    try {
+      // Hiện tạm thời để chụp ảnh
+      printArea.style.display = "block";
+      printArea.style.position = "absolute";
+      printArea.style.left = "-9999px";
+      printArea.style.top = "0";
+
+      const canvas = await html2canvas(printArea, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+
+      // Ẩn lại
+      printArea.style.display = "";
+      printArea.style.position = "";
+      printArea.style.left = "";
+
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      const pdf = new jsPDF("p", "mm", "a4");
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+      const pdfBlob = pdf.output("blob");
+
+      const linksText = productLinks
+        .map((item, idx) => `- ${item.shortText || "Sản phẩm"}: ${item.url}`)
+        .join("\n");
+      const caption = `📦 BÁO GIÁ MỚI\n👤 Khách hàng: ${customerName || "Chưa rõ"}\n📅 Ngày: ${quoteDate}\n\n🔗 Links sản phẩm:\n${linksText}`;
+
+      const formData = new FormData();
+      formData.append("chat_id", TG_CHAT_ID);
+      formData.append("document", pdfBlob, `BaoGia_${customerName || "Khach"}_${quoteNo}.pdf`);
+      formData.append("caption", caption);
+
+      const response = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendDocument`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Gửi Telegram thất bại");
+      console.log("Đã gửi báo giá qua Telegram!");
+    } catch (error) {
+      console.error("Lỗi gửi Telegram:", error);
+      alert("Lỗi: Không thể gửi file qua Telegram. Hãy kiểm tra kết nối mạng.");
+    } finally {
+      setIsSendingTg(false);
+    }
+  };
+
   const handlePrint = () => {
     window.print();
+    sendPDFToTelegram();
   };
 
   const handleOpenSheet = () => {
@@ -541,9 +606,16 @@ export default function OrderPriceCalculator() {
           <button
             type="button"
             onClick={handlePrint}
-            className="px-3 py-2 rounded-xl border border-gray-300 text-sm hover:bg-gray-50"
+            className="px-3 py-2 rounded-xl border border-gray-300 text-sm hover:bg-gray-50 flex items-center gap-2"
           >
-            In / Lưu PDF
+            {isSendingTg ? (
+              <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+            )}
+            {isSendingTg ? "Đang gửi Telegram..." : "In / Lưu PDF & Gửi Telegram"}
           </button>
         </div>
 
@@ -1118,7 +1190,7 @@ export default function OrderPriceCalculator() {
       </div>
 
       {/* GIAO DIỆN IN PDF (DẠNG BẢNG EXCEL) */}
-      <div className="hidden print:block w-full max-w-4xl mx-auto p-8 text-black bg-white">
+      <div id="printable-area" className="hidden print:block w-full max-w-4xl mx-auto p-8 text-black bg-white">
         <div className="mb-6">
           <h1 className="text-2xl font-bold uppercase mb-4 tracking-wide border-b-2 border-gray-800 pb-2">
             Bảng Báo Giá / Hoá Đơn
