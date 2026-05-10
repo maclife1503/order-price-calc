@@ -380,11 +380,15 @@ export default function OrderPriceCalculator() {
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Gửi Telegram thất bại");
-      console.log("Đã gửi báo giá qua Telegram!");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.description || "Gửi Telegram thất bại");
+      }
+      
+      alert("✅ Đã gửi báo giá qua Telegram thành công!");
     } catch (error) {
       console.error("Lỗi gửi Telegram:", error);
-      alert("Lỗi: Không thể gửi file qua Telegram. Hãy kiểm tra kết nối mạng.");
+      alert(`❌ Lỗi Telegram: ${error.message}\n(Vui lòng kiểm tra lại Token, Chat ID hoặc kết nối mạng)`);
     } finally {
       setIsSendingTg(false);
     }
