@@ -506,9 +506,6 @@ export default function OrderPriceCalculator() {
               <div className="flex items-baseline gap-1">
                 <span className="text-lg font-bold tracking-tight">{GEN.format(rate)}</span>
                 <span className="text-xs opacity-90 font-medium text-indigo-100">đ / 1¥</span>
-                <span className="text-[10px] ml-1 px-1.5 py-0.5 bg-green-500/30 rounded-full border border-white/20">
-                  (Đã +10đ)
-                </span>
               </div>
             </div>
           </div>
