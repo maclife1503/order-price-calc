@@ -340,21 +340,27 @@ export default function OrderPriceCalculator() {
     setIsSendingTg(true);
     try {
       // Hiện tạm thời để chụp ảnh
+      printArea.classList.remove("hidden");
       printArea.style.display = "block";
       printArea.style.position = "absolute";
       printArea.style.left = "-9999px";
       printArea.style.top = "0";
+      printArea.style.width = "900px"; // Cố định width để layout không bị vỡ
 
       const canvas = await html2canvas(printArea, {
         scale: 2,
         useCORS: true,
         logging: false,
+        windowWidth: 900,
       });
 
       // Ẩn lại
+      printArea.style.width = "";
       printArea.style.display = "";
       printArea.style.position = "";
       printArea.style.left = "";
+      printArea.style.top = "";
+      printArea.classList.add("hidden");
 
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
       const pdf = new jsPDF("p", "mm", "a4");
