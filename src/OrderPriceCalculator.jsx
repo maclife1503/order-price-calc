@@ -339,31 +339,35 @@ export default function OrderPriceCalculator() {
 
     setIsSendingTg(true);
     try {
-      // Hiện tạm thời để chụp ảnh
-      printArea.classList.remove("hidden");
-      printArea.style.display = "block";
-      printArea.style.position = "fixed";
-      printArea.style.left = "0";
-      printArea.style.top = "0";
-      printArea.style.zIndex = "-9999";
+      // 1. Nhân bản (clone) printable-area và đưa ra ngoài body để tránh tất cả các ràng buộc layout của cha
+      const clone = printArea.cloneNode(true);
+      clone.classList.remove("hidden");
+      clone.style.display = "block";
+      clone.style.position = "absolute";
+      clone.style.left = "0";
+      clone.style.top = "0";
+      clone.style.zIndex = "-9999";
+      clone.style.width = "900px";
+      clone.style.minWidth = "900px";
+      clone.style.maxWidth = "none";
+      
+      document.body.appendChild(clone);
 
-      const canvas = await html2canvas(printArea, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        width: 900,
-        windowWidth: 900,
-        scrollX: 0,
-        scrollY: 0,
-      });
-
-      // Ẩn lại
-      printArea.style.display = "";
-      printArea.style.position = "";
-      printArea.style.left = "";
-      printArea.style.top = "";
-      printArea.style.zIndex = "";
-      printArea.classList.add("hidden");
+      let canvas;
+      try {
+        canvas = await html2canvas(clone, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          width: 900,
+          windowWidth: 900,
+          scrollX: 0,
+          scrollY: 0,
+        });
+      } finally {
+        // Gỡ bỏ clone khỏi body ngay khi chụp xong (kể cả khi xảy ra lỗi)
+        document.body.removeChild(clone);
+      }
 
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
       
