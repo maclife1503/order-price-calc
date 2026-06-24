@@ -333,7 +333,7 @@ export default function OrderPriceCalculator() {
 
   const [isSendingTg, setIsSendingTg] = useState(false);
 
-  const sendPDFToTelegram = async () => {
+  const handlePrint = async () => {
     const printArea = document.getElementById("printable-area");
     if (!printArea) return;
 
@@ -363,12 +363,23 @@ export default function OrderPriceCalculator() {
       printArea.classList.add("hidden");
 
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
-      const pdf = new jsPDF("p", "mm", "a4");
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
+      
+      // Tạo jsPDF tạm thời để lấy thuộc tính hình ảnh và tính toán kích thước chiều cao động theo tỷ lệ
+      const tempPdf = new jsPDF("p", "mm", "a4");
+      const imgProps = tempPdf.getImageProperties(imgData);
+      const pdfWidth = 210; // Chiều rộng tiêu chuẩn A4 (mm)
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
+      // Tạo PDF với kích thước thật của ảnh chụp để tránh bị cắt bớt hoặc tràn
+      const pdf = new jsPDF("p", "mm", [pdfWidth, pdfHeight]);
       pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+
+      const fileName = `BaoGia_${customerName || "Khach"}_${quoteNo}.pdf`;
+
+      // 1. Tải trực tiếp file PDF về máy người dùng
+      pdf.save(fileName);
+
+      // 2. Chuẩn bị gửi file PDF đó sang Telegram
       const pdfBlob = pdf.output("blob");
 
       const linksText = productLinks
@@ -378,7 +389,7 @@ export default function OrderPriceCalculator() {
 
       const formData = new FormData();
       formData.append("chat_id", TG_CHAT_ID);
-      formData.append("document", pdfBlob, `BaoGia_${customerName || "Khach"}_${quoteNo}.pdf`);
+      formData.append("document", pdfBlob, fileName);
       formData.append("caption", caption);
 
       const response = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendDocument`, {
@@ -390,19 +401,12 @@ export default function OrderPriceCalculator() {
         const errorData = await response.json();
         throw new Error(errorData.description || "Gửi Telegram thất bại");
       }
-      
-      alert("✅ Đã gửi báo giá qua Telegram thành công!");
     } catch (error) {
-      console.error("Lỗi gửi Telegram:", error);
-      alert(`❌ Lỗi Telegram: ${error.message}\n(Vui lòng kiểm tra lại Token, Chat ID hoặc kết nối mạng)`);
+      console.error("Lỗi tạo/gửi PDF:", error);
+      alert(`❌ Lỗi: ${error.message}`);
     } finally {
       setIsSendingTg(false);
     }
-  };
-
-  const handlePrint = () => {
-    window.print();
-    sendPDFToTelegram();
   };
 
   const handleOpenSheet = () => {
@@ -622,10 +626,10 @@ export default function OrderPriceCalculator() {
               <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
             ) : (
               <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
             )}
-            {isSendingTg ? "Đang gửi Telegram..." : "In / Lưu PDF & Gửi Telegram"}
+            {isSendingTg ? "Đang tải PDF..." : "Tải PDF"}
           </button>
         </div>
 
