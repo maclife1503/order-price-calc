@@ -346,9 +346,6 @@ export default function OrderPriceCalculator() {
       printArea.style.left = "0";
       printArea.style.top = "0";
       printArea.style.zIndex = "-9999";
-      printArea.style.width = "900px"; // Cố định width để layout không bị vỡ
-      printArea.style.minWidth = "900px";
-      printArea.style.maxWidth = "none";
 
       const canvas = await html2canvas(printArea, {
         scale: 2,
@@ -361,9 +358,6 @@ export default function OrderPriceCalculator() {
       });
 
       // Ẩn lại
-      printArea.style.width = "";
-      printArea.style.minWidth = "";
-      printArea.style.maxWidth = "";
       printArea.style.display = "";
       printArea.style.position = "";
       printArea.style.left = "";
@@ -1213,7 +1207,11 @@ export default function OrderPriceCalculator() {
       </div>
 
       {/* GIAO DIỆN IN PDF (DẠNG BẢNG EXCEL) */}
-      <div id="printable-area" className="hidden print:block w-full max-w-4xl mx-auto p-8 text-black bg-white">
+      <div
+        id="printable-area"
+        className="hidden text-black bg-white mx-auto"
+        style={{ width: "900px", minWidth: "900px", maxWidth: "none", padding: "2rem" }}
+      >
         <div className="mb-6">
           <h1 className="text-2xl font-bold uppercase mb-4 tracking-wide border-b-2 border-gray-800 pb-2">
             Bảng Báo Giá / Hoá Đơn
