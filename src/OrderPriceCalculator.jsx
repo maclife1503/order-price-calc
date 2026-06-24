@@ -339,46 +339,35 @@ export default function OrderPriceCalculator() {
 
     setIsSendingTg(true);
     try {
-      // 1. Nhân bản (clone) printable-area và đưa ra ngoài body để tránh tất cả các ràng buộc layout của cha
-      const clone = printArea.cloneNode(true);
-      clone.classList.remove("hidden");
-      clone.style.display = "block";
-      clone.style.position = "absolute";
-      clone.style.left = "0";
-      clone.style.top = "0";
-      clone.style.zIndex = "-9999";
-      clone.style.width = "900px";
-      clone.style.minWidth = "900px";
-      clone.style.maxWidth = "none";
-      
-      document.body.appendChild(clone);
+      // Hiện tạm thời để chụp ảnh
+      printArea.classList.remove("hidden");
+      printArea.style.display = "block";
+      printArea.style.position = "absolute";
+      printArea.style.left = "-9999px";
+      printArea.style.top = "0";
+      printArea.style.width = "900px"; // Cố định width để layout không bị vỡ
 
-      let canvas;
-      try {
-        canvas = await html2canvas(clone, {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          width: 900,
-          windowWidth: 900,
-          scrollX: 0,
-          scrollY: 0,
-        });
-      } finally {
-        // Gỡ bỏ clone khỏi body ngay khi chụp xong (kể cả khi xảy ra lỗi)
-        document.body.removeChild(clone);
-      }
+      const canvas = await html2canvas(printArea, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        windowWidth: 900,
+      });
+
+      // Ẩn lại
+      printArea.style.width = "";
+      printArea.style.display = "";
+      printArea.style.position = "";
+      printArea.style.left = "";
+      printArea.style.top = "";
+      printArea.classList.add("hidden");
 
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
-      
-      // Tạo jsPDF tạm thời để lấy thuộc tính hình ảnh và tính toán kích thước chiều cao động theo tỷ lệ
-      const tempPdf = new jsPDF("p", "mm", "a4");
-      const imgProps = tempPdf.getImageProperties(imgData);
-      const pdfWidth = 210; // Chiều rộng tiêu chuẩn A4 (mm)
+      const pdf = new jsPDF("p", "mm", "a4");
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-      // Tạo PDF với kích thước thật của ảnh chụp để tránh bị cắt bớt hoặc tràn
-      const pdf = new jsPDF("p", "mm", [pdfWidth, pdfHeight]);
       pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
 
       const fileName = `BaoGia_${customerName || "Khach"}_${quoteNo}.pdf`;
@@ -1211,11 +1200,7 @@ export default function OrderPriceCalculator() {
       </div>
 
       {/* GIAO DIỆN IN PDF (DẠNG BẢNG EXCEL) */}
-      <div
-        id="printable-area"
-        className="hidden text-black bg-white mx-auto"
-        style={{ width: "900px", minWidth: "900px", maxWidth: "none", padding: "2rem" }}
-      >
+      <div id="printable-area" className="hidden print:block w-full max-w-4xl mx-auto p-8 text-black bg-white">
         <div className="mb-6">
           <h1 className="text-2xl font-bold uppercase mb-4 tracking-wide border-b-2 border-gray-800 pb-2">
             Bảng Báo Giá / Hoá Đơn
