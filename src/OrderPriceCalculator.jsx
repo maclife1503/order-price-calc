@@ -342,9 +342,10 @@ export default function OrderPriceCalculator() {
       // Hiện tạm thời để chụp ảnh
       printArea.classList.remove("hidden");
       printArea.style.display = "block";
-      printArea.style.position = "absolute";
-      printArea.style.left = "-9999px";
+      printArea.style.position = "fixed";
+      printArea.style.left = "0";
       printArea.style.top = "0";
+      printArea.style.zIndex = "-9999";
       printArea.style.width = "900px"; // Cố định width để layout không bị vỡ
       printArea.style.minWidth = "900px";
       printArea.style.maxWidth = "none";
@@ -355,6 +356,8 @@ export default function OrderPriceCalculator() {
         logging: false,
         width: 900,
         windowWidth: 900,
+        scrollX: 0,
+        scrollY: 0,
       });
 
       // Ẩn lại
@@ -365,6 +368,7 @@ export default function OrderPriceCalculator() {
       printArea.style.position = "";
       printArea.style.left = "";
       printArea.style.top = "";
+      printArea.style.zIndex = "";
       printArea.classList.add("hidden");
 
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
