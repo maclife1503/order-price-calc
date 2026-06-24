@@ -346,16 +346,21 @@ export default function OrderPriceCalculator() {
       printArea.style.left = "-9999px";
       printArea.style.top = "0";
       printArea.style.width = "900px"; // Cố định width để layout không bị vỡ
+      printArea.style.minWidth = "900px";
+      printArea.style.maxWidth = "none";
 
       const canvas = await html2canvas(printArea, {
         scale: 2,
         useCORS: true,
         logging: false,
+        width: 900,
         windowWidth: 900,
       });
 
       // Ẩn lại
       printArea.style.width = "";
+      printArea.style.minWidth = "";
+      printArea.style.maxWidth = "";
       printArea.style.display = "";
       printArea.style.position = "";
       printArea.style.left = "";
